@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"fly/internal/model"
+	"golang.org/x/text/encoding/simplifiedchinese"
+	"golang.org/x/text/transform"
 )
 
 // tencentProvider fetches quotes from Tencent Finance API
@@ -74,7 +76,7 @@ func (p *tencentProvider) GetQuotes(symbols []string) ([]*model.Quote, error) {
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(transform.NewReader(resp.Body, simplifiedchinese.GBK.NewDecoder()))
 	if err != nil {
 		return nil, err
 	}
