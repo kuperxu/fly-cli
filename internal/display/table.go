@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	"fly/internal/model"
 
@@ -97,23 +98,29 @@ func PrintPortfolio(views []*model.PositionView) {
 	}
 	PrintQuotes(views)
 
-	var totalCost, totalValue, totalPnL float64
+	var totalCost, totalValue, totalPnL, totalDayPnL float64
 	for _, v := range views {
 		if v.Holding != nil {
 			totalCost += v.CostValue()
 			totalValue += v.MarketValue()
 			pnl, _ := v.PnL()
 			totalPnL += pnl
+			totalDayPnL += v.Quote.Change * v.Holding.Shares
 		}
 	}
 
+	today := time.Now().Format("01/02")
 	fmt.Println()
 	colorBold.Print("汇总  ")
 	fmt.Printf("总成本: %.2f  ", totalCost)
 	fmt.Printf("总市值: %.2f  ", totalValue)
-	colorChange(totalPnL).Printf("总盈亏: %s (%.2f%%)\n",
+	colorChange(totalPnL).Printf("总盈亏: %s (%.2f%%)  ",
 		formatPnL(totalPnL),
 		safePct(totalPnL, totalCost),
+	)
+	colorChange(totalDayPnL).Printf("今日(%s): %s\n",
+		today,
+		formatPnL(totalDayPnL),
 	)
 }
 

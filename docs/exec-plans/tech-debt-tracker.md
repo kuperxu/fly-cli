@@ -1,0 +1,16 @@
+# Tech Debt Tracker
+
+Known issues, shortcuts, and deferred improvements.
+
+## Open Items
+
+| ID | Area | Description | Priority |
+|----|------|-------------|----------|
+| TD-001 | storage | Portfolio file has no write lock — concurrent writes from multiple terminals can race | Low |
+| TD-002 | deps | `tablewriter` remains in `go.mod` as unused indirect dep | Low |
+| TD-003 | api | Eastmoney NYSE auto-retry (`105.` → `106.`) is a heuristic; some US ETFs may fail silently | Medium |
+| TD-004 | display | No pagination for large portfolios — all rows printed at once | Low |
+
+## Resolved Items
+
+_None yet._

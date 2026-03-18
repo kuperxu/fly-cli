@@ -1,123 +1,80 @@
 # AGENT.md
 
-Project context for AI-assisted development.
+Navigation map for AI-assisted development on `fly-cli`.
+This file is a table of contents — follow the links for deeper context.
 
-## Project
+## What is this project?
 
 `fly` — a terminal CLI for real-time stock quotes and portfolio P&L tracking.
-Written in Go. Binary name: `fly`. Config dir: `~/.fly-cli/`.
+- Markets: A-shares (SH/SZ), Hong Kong, US stocks
+- No API keys required
+- Binary name: `fly` | Config: `~/.fly-cli/portfolio.yaml`
 
-## Architecture
+## Key documents
 
-```
-fly-cli/
-├── main.go                      # Entrypoint
-├── cmd/                         # Cobra commands (one file per command)
-│   ├── root.go                  # Root command, registers all subcommands
-│   ├── quote.go                 # `fly quote` / `fly q`
-│   ├── portfolio.go             # `fly portfolio` / `fly pf` / `fly ls`
-│   ├── add.go                   # `fly add`
-│   └── remove.go                # `fly remove` / `fly rm` / `fly del`
-└── internal/
-    ├── model/
-    │   ├── stock.go             # Core types: Quote, Holding, PositionView
-    │   └── symbol.go            # Symbol parsing and normalization
-    ├── api/
-    │   ├── provider.go          # Provider interface
-    │   ├── client.go            # Client with primary + fallback logic
-    │   ├── eastmoney.go         # Eastmoney push2 API (primary, JSON)
-    │   └── tencent.go           # Tencent Finance API (fallback, text)
-    ├── storage/
-    │   └── store.go             # YAML portfolio read/write (~/.fly-cli/portfolio.yaml)
-    └── display/
-        └── table.go             # Colored, CJK-aligned table rendering
-```
+| Document | What's in it |
+|----------|-------------|
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | Package map, layer diagram, data flow |
+| [docs/design-docs/core-beliefs.md](./docs/design-docs/core-beliefs.md) | Non-negotiable design principles |
+| [docs/design-docs/api-provider-pattern.md](./docs/design-docs/api-provider-pattern.md) | Primary+fallback provider design |
+| [docs/design-docs/display-renderer.md](./docs/design-docs/display-renderer.md) | Why the custom table renderer exists |
+| [docs/references/symbol-formats.md](./docs/references/symbol-formats.md) | All symbol input formats and normalization rules |
+| [docs/references/eastmoney-api.md](./docs/references/eastmoney-api.md) | Eastmoney secid format and field reference |
+| [docs/references/tencent-api.md](./docs/references/tencent-api.md) | Tencent API symbol format and GBK decoding |
+| [docs/exec-plans/tech-debt-tracker.md](./docs/exec-plans/tech-debt-tracker.md) | Known tech debt items |
 
-## Key types
+## Commands
 
-```go
-// model/stock.go
-type Market string  // "SH" | "SZ" | "HK" | "US"
+| Command | Aliases | File |
+|---------|---------|------|
+| `fly quote <symbols...>` | `fly q` | `cmd/quote.go` |
+| `fly portfolio` | `fly pf`, `fly ls` | `cmd/portfolio.go` |
+| `fly add <symbol>` | — | `cmd/add.go` |
+| `fly remove <symbol>` | `fly rm`, `fly del` | `cmd/remove.go` |
 
-type Quote struct {
-    Code, Name, Currency string
-    Market               Market
-    Price, PrevClose, Open, High, Low float64
-    Volume               int64
-    Amount, Change, ChangePct float64
-}
+## Critical constraints (read before changing anything)
 
-type Holding struct {
-    Code   string  `yaml:"code"`   // e.g. "600519.SH", "AAPL"
-    Cost   float64 `yaml:"cost"`
-    Shares float64 `yaml:"shares"`
-}
+1. **Do not replace the table renderer** with `tablewriter` — it breaks CJK alignment.
+   See [docs/design-docs/display-renderer.md](./docs/design-docs/display-renderer.md).
+2. **Color convention is red=up, green=down** (Chinese market norm, not Western).
+3. **HK codes are zero-padded to 5 digits** in all API calls.
+4. **US stocks default NASDAQ (`105.`), auto-retry NYSE (`106.`)** in `eastmoney.go`.
 
-type PositionView struct {
-    Quote   *Quote
-    Holding *Holding  // nil if not in portfolio
-}
-```
+## Agent protocol: when a requirement is complete
 
-## Data sources
+**Every time you finish implementing a feature, you must update the knowledge base.**
+Do not ask the user — just do it as part of completing the task.
 
-| Provider | API endpoint | Markets | Format |
-|----------|-------------|---------|--------|
-| Eastmoney (primary) | `push2.eastmoney.com/api/qt/stock/get` | A/HK/US | JSON |
-| Tencent (fallback) | `qt.gtimg.cn/q=` | A/HK/US | `~`-delimited text |
+| What changed | Where to update |
+|-------------|----------------|
+| New feature shipped | `docs/exec-plans/completed/<slug>.md` (new file) + `docs/exec-plans/index.md` |
+| New tech debt introduced | `docs/exec-plans/tech-debt-tracker.md` |
+| Tech debt resolved | Mark resolved in `tech-debt-tracker.md` |
+| New command added | `AGENT.md` Commands table |
+| New invariant / constraint | `AGENT.md` Critical constraints |
+| New package or data flow | `ARCHITECTURE.md` |
+| Non-obvious design decision | New file in `docs/design-docs/` + update `index.md` |
+| New external API or symbol format | `docs/references/` |
 
-**Eastmoney secid format:**
-- Shanghai: `1.600519`
-- Shenzhen: `0.000858`
-- HK: `116.00700`
-- NASDAQ: `105.AAPL`
-- NYSE: `106.BRK-A` (fallback tried automatically)
+**AGENT.md must stay under ~100 lines.** Detail belongs in linked sub-documents.
 
-**Tencent symbol format:** `sh600519`, `sz000858`, `hk00700`, `usAAPL`
+## Common tasks
 
-## Symbol parsing rules (`model/symbol.go`)
+**Add a command:**
+1. Create `cmd/<name>.go` with `var <name>Cmd = &cobra.Command{...}`
+2. Register in `cmd/root.go` `init()`: `rootCmd.AddCommand(<name>Cmd)`
 
-| Input | Resolved market |
-|-------|----------------|
-| `600519` | SH (starts with 6/5/9) |
-| `000858` | SZ (other numeric) |
-| `600519.SH` | SH (explicit) |
-| `000858.SZ` | SZ (explicit) |
-| `00700.HK` | HK (explicit) |
-| `AAPL` | US (alphabetic) |
+**Add a data provider:**
+1. Implement `api.Provider` interface in `internal/api/<name>.go`
+2. Wire into `api.NewClient()` in `client.go`
 
-Canonical form: `CODE.MARKET` (e.g. `600519.SH`) except US tickers which are bare (e.g. `AAPL`).
-
-## Display (`internal/display/table.go`)
-
-- Hand-rolled table renderer — **do not switch back to tablewriter**, it mis-measures CJK widths.
-- Uses `mattn/go-runewidth` for display-width-aware column sizing.
-- ANSI codes stripped via regex before width measurement so colored cells align correctly.
-- Color convention: **red = up, green = down** (Chinese market convention).
-- First two columns (code, name) are left-aligned; all others right-aligned.
-
-## Storage (`internal/storage/store.go`)
-
-- Config file: `~/.fly-cli/portfolio.yaml`
-- `Store.Load()` returns empty portfolio (not error) when file doesn't exist.
-- `Store.Upsert()` matches by normalized (uppercased) code.
-
-## Adding a new command
-
-1. Create `cmd/<name>.go` with a `var <name>Cmd = &cobra.Command{...}`.
-2. Register it in `cmd/root.go` under `func init()` with `rootCmd.AddCommand(<name>Cmd)`.
-
-## Adding a new data provider
-
-1. Implement the `api.Provider` interface (`Name() string`, `GetQuotes([]string) ([]*model.Quote, error)`).
-2. Wire it into `api.NewClient()` in `client.go` as primary or fallback.
-
-## Build & run
-
+**Build & test:**
 ```bash
-go build .          # build binary in current dir
-go install .        # install to $GOPATH/bin (already in PATH)
-fly q 600519        # smoke test
+go build .
+go install .
+fly q 600519        # smoke test A-share
+fly q AAPL          # smoke test US
+fly portfolio       # smoke test portfolio
 ```
 
 ## Dependencies
@@ -127,12 +84,5 @@ fly q 600519        # smoke test
 | `github.com/spf13/cobra` | CLI framework |
 | `github.com/fatih/color` | ANSI terminal colors |
 | `github.com/mattn/go-runewidth` | CJK-aware string width |
-| `gopkg.in/yaml.v3` | Portfolio config serialization |
-| `github.com/olekukonko/tablewriter` | In go.mod but **not used** — replaced by custom renderer |
-
-## Known constraints
-
-- No real-time streaming — each command makes a fresh HTTP request.
-- Eastmoney US stocks default to NASDAQ (`105.`); NYSE stocks auto-retry with `106.`.
-- HK codes are zero-padded to 5 digits in API calls.
-- Portfolio file is not locked — concurrent writes from multiple terminals can race.
+| `gopkg.in/yaml.v3` | Portfolio YAML serialization |
+| `golang.org/x/text` | GBK → UTF-8 transcoding (Tencent API) |
