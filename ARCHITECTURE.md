@@ -5,8 +5,8 @@ on layers below it.
 
 ```
 ┌─────────────────────────────────────────────┐
-│  cmd/          CLI layer (Cobra commands)             │
-│  quote.go  portfolio.go  add.go  remove.go  market.go│
+│  cmd/          CLI layer (Cobra commands)                       │
+│  quote.go  portfolio.go  add.go  remove.go  market.go  alert.go│
 └───────────────┬─────────────────────────────┘
                 │ uses
     ┌───────────┴────────────────────────────┐
@@ -35,6 +35,7 @@ then pass results to `display`. No business logic lives here.
 ### `internal/model/`
 Domain types only. No I/O, no formatting.
 - `stock.go` — `Quote`, `Holding`, `PositionView`, `Market`
+- `alert.go` — `Alert`, `TriggeredAlert`
 - `symbol.go` — `ParseSymbol()`, `NormalizeCode()`
 
 ### `internal/api/`
@@ -47,12 +48,13 @@ HTTP data fetching.
 See [docs/design-docs/api-provider-pattern.md](docs/design-docs/api-provider-pattern.md).
 
 ### `internal/storage/`
-YAML portfolio persistence at `~/.fly-cli/portfolio.yaml`.
-- `Load()`, `Save()`, `Upsert()`, `Remove()`, `FindHolding()`
+YAML persistence at `~/.fly-cli/`.
+- `store.go` — Portfolio CRUD (`portfolio.yaml`)
+- `alert_store.go` — Alert CRUD (`alerts.yaml`)
 
 ### `internal/display/`
 Terminal table rendering with CJK-aware column sizing.
-- `PrintQuotes()`, `PrintPortfolio()`, `PrintSuccess()`, `PrintError()`
+- `PrintQuotes()`, `PrintPortfolio()`, `PrintAlerts()`, `PrintTriggeredAlerts()`, `PrintSuccess()`, `PrintError()`
 
 See [docs/design-docs/display-renderer.md](docs/design-docs/display-renderer.md).
 
@@ -86,5 +88,7 @@ storage.Load() → []Holding
     → api.Client.GetQuotes() for all held codes
     → []PositionView (Quote + Holding merged)
     → display.PrintPortfolio()
-    → terminal output with P&L summary
+    → AlertStore.Load() → check triggered alerts
+    → display.PrintTriggeredAlerts() (if any)
+    → terminal output with P&L summary + alert warnings
 ```

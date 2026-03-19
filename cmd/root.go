@@ -27,4 +27,5 @@ func init() {
 	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(removeCmd)
 	rootCmd.AddCommand(marketCmd)
+	rootCmd.AddCommand(alertCmd)
 }

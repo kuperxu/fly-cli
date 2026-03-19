@@ -277,3 +277,44 @@ func safePct(numerator, denominator float64) float64 {
 	}
 	return numerator / denominator * 100
 }
+
+// PrintAlerts prints a table of all configured alerts.
+func PrintAlerts(alerts []*model.Alert) {
+	colorBold.Println("价格提醒列表:")
+	fmt.Println()
+	for _, a := range alerts {
+		line := fmt.Sprintf("  %s", colorCyan.Sprint(a.Code))
+		if a.Entry != 0 {
+			line += fmt.Sprintf("  Entry=%.2f", a.Entry)
+		}
+		if a.TP1 != 0 {
+			line += fmt.Sprintf("  TP1=%.2f", a.TP1)
+		}
+		if a.SL != 0 {
+			line += fmt.Sprintf("  SL=%.2f", a.SL)
+		}
+		fmt.Println(line)
+	}
+}
+
+// PrintTriggeredAlerts prints triggered alert warnings after portfolio output.
+func PrintTriggeredAlerts(triggered []model.TriggeredAlert) {
+	if len(triggered) == 0 {
+		return
+	}
+	colorWarning := color.New(color.FgYellow, color.Bold)
+	fmt.Println()
+	colorWarning.Println("⚠ 价格提醒:")
+	for _, t := range triggered {
+		name := t.Name
+		if name != "" {
+			name = " " + name
+		}
+		switch t.Type {
+		case "TP1":
+			colorUp.Printf("  %s%s 当前 %.2f ≥ %s %.2f ✓\n", t.Code, name, t.Price, t.Type, t.Target)
+		default: // Entry, SL
+			colorDown.Printf("  %s%s 当前 %.2f ≤ %s %.2f ✓\n", t.Code, name, t.Price, t.Type, t.Target)
+		}
+	}
+}

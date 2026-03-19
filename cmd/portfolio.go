@@ -71,6 +71,45 @@ var portfolioCmd = &cobra.Command{
 		}
 
 		display.PrintPortfolio(views)
+
+		// Check alerts
+		alertStore, err := storage.NewAlertStore()
+		if err == nil {
+			book, err := alertStore.Load()
+			if err == nil && len(book.Alerts) > 0 {
+				var triggered []model.TriggeredAlert
+				for _, v := range views {
+					sym := v.Quote.Code + "." + string(v.Quote.Market)
+					if v.Quote.Market == model.MarketUS {
+						sym = v.Quote.Code
+					}
+					a := book.FindAlert(sym)
+					if a == nil {
+						continue
+					}
+					if a.Entry != 0 && v.Quote.Price <= a.Entry {
+						triggered = append(triggered, model.TriggeredAlert{
+							Code: sym, Name: v.Quote.Name, Price: v.Quote.Price,
+							Type: "Entry", Target: a.Entry,
+						})
+					}
+					if a.TP1 != 0 && v.Quote.Price >= a.TP1 {
+						triggered = append(triggered, model.TriggeredAlert{
+							Code: sym, Name: v.Quote.Name, Price: v.Quote.Price,
+							Type: "TP1", Target: a.TP1,
+						})
+					}
+					if a.SL != 0 && v.Quote.Price <= a.SL {
+						triggered = append(triggered, model.TriggeredAlert{
+							Code: sym, Name: v.Quote.Name, Price: v.Quote.Price,
+							Type: "SL", Target: a.SL,
+						})
+					}
+				}
+				display.PrintTriggeredAlerts(triggered)
+			}
+		}
+
 		return nil
 	},
 }

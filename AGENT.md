@@ -8,7 +8,7 @@ This file is a table of contents — follow the links for deeper context.
 `fly` — a terminal CLI for real-time stock quotes and portfolio P&L tracking.
 - Markets: A-shares (SH/SZ), Hong Kong, US stocks
 - No API keys required
-- Binary name: `fly` | Config: `~/.fly-cli/portfolio.yaml`
+- Binary name: `fly` | Config: `~/.fly-cli/portfolio.yaml`, `~/.fly-cli/alerts.yaml`
 
 ## Key documents
 
@@ -32,6 +32,9 @@ This file is a table of contents — follow the links for deeper context.
 | `fly add <symbol>` | — | `cmd/add.go` |
 | `fly remove <symbol>` | `fly rm`, `fly del` | `cmd/remove.go` |
 | `fly market` | `fly mk` | `cmd/market.go` |
+| `fly alert set <symbol>` | — | `cmd/alert.go` |
+| `fly alert ls` | `fly alert list` | `cmd/alert.go` |
+| `fly alert rm <symbol>` | `fly alert remove`, `fly alert del` | `cmd/alert.go` |
 
 ## Critical constraints (read before changing anything)
 

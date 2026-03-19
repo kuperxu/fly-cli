@@ -12,6 +12,7 @@ _No active plans._
 |------|---------|-----------|
 | [completed/initial-implementation.md](./completed/initial-implementation.md) | Core CLI with quote, portfolio, add, remove | 2025 |
 | [completed/market-command.md](./completed/market-command.md) | `fly market` — major index quotes | 2026-03 |
+| [completed/alert-command.md](./completed/alert-command.md) | `fly alert` — price alerts (Entry/TP1/SL) | 2026-03 |
 
 ## Tech Debt
 
