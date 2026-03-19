@@ -55,17 +55,39 @@ type emResponse struct {
 }
 
 type emData struct {
-	Price     float64 `json:"f43"`
-	High      float64 `json:"f46"`
-	Low       float64 `json:"f44"`
-	Volume    int64   `json:"f47"`
-	Amount    float64 `json:"f48"`
-	Code      string  `json:"f57"`
-	Name      string  `json:"f58"`
-	PrevClose float64 `json:"f60"`
-	Change    float64 `json:"f169"`
-	ChangePct float64 `json:"f170"`
-	Open      float64 `json:"f46o"` // not always present
+	Price     float64     `json:"f43"`
+	High      float64     `json:"f46"`
+	Low       float64     `json:"f44"`
+	Volume    interface{} `json:"f47"` // may be "-" for some indices
+	Amount    interface{} `json:"f48"` // may be "-" for some indices
+	Code      string      `json:"f57"`
+	Name      string      `json:"f58"`
+	PrevClose float64     `json:"f60"`
+	Change    float64     `json:"f169"`
+	ChangePct float64     `json:"f170"`
+	Open      float64     `json:"f46o"` // not always present
+}
+
+func toInt64(v interface{}) int64 {
+	switch n := v.(type) {
+	case float64:
+		return int64(n)
+	case json.Number:
+		i, _ := n.Int64()
+		return i
+	}
+	return 0
+}
+
+func toFloat64(v interface{}) float64 {
+	switch n := v.(type) {
+	case float64:
+		return n
+	case json.Number:
+		f, _ := n.Float64()
+		return f
+	}
+	return 0
 }
 
 func (p *eastmoneyProvider) GetQuotes(symbols []string) ([]*model.Quote, error) {
@@ -139,8 +161,8 @@ func (p *eastmoneyProvider) fetchOne(symbol string) (*model.Quote, error) {
 		PrevClose: d.PrevClose,
 		High:      d.High,
 		Low:       d.Low,
-		Volume:    d.Volume,
-		Amount:    d.Amount,
+		Volume:    toInt64(d.Volume),
+		Amount:    toFloat64(d.Amount),
 		Change:    d.Change,
 		ChangePct: d.ChangePct,
 		Currency:  currency,
@@ -190,12 +212,85 @@ func (p *eastmoneyProvider) fetchUSFallback(symbol, code string) (*model.Quote, 
 		PrevClose: d.PrevClose,
 		High:      d.High,
 		Low:       d.Low,
-		Volume:    d.Volume,
-		Amount:    d.Amount,
+		Volume:    toInt64(d.Volume),
+		Amount:    toFloat64(d.Amount),
 		Change:    d.Change,
 		ChangePct: d.ChangePct,
 		Currency:  "USD",
 	}, nil
+}
+
+// ulist response types for batch index/bond queries
+type emUlistResponse struct {
+	RC   int          `json:"rc"`
+	Data emUlistData  `json:"data"`
+}
+
+type emUlistData struct {
+	Total int              `json:"total"`
+	Diff  []emUlistItem    `json:"diff"`
+}
+
+type emUlistItem struct {
+	Price     float64 `json:"f2"`
+	ChangePct float64 `json:"f3"`
+	Change    float64 `json:"f4"`
+	Code      string  `json:"f12"`
+	Name      string  `json:"f14"`
+	High      float64 `json:"f15"`
+	Low       float64 `json:"f16"`
+	PrevClose float64 `json:"f18"`
+}
+
+// fetchIndices fetches quotes for multiple indices/bonds in a single batch request
+func (p *eastmoneyProvider) fetchIndices(secids []string) ([]*model.Quote, error) {
+	fields := "f2,f3,f4,f12,f14,f15,f16,f18"
+	url := fmt.Sprintf(
+		"https://push2.eastmoney.com/api/qt/ulist.np/get?secids=%s&fields=%s&fltt=2&invt=2",
+		strings.Join(secids, ","), fields,
+	)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36")
+	req.Header.Set("Referer", "https://finance.eastmoney.com/")
+
+	resp, err := p.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var result emUlistResponse
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("invalid response: %w", err)
+	}
+	if result.RC != 0 {
+		return nil, fmt.Errorf("API error rc=%d", result.RC)
+	}
+
+	quotes := make([]*model.Quote, 0, len(result.Data.Diff))
+	for _, d := range result.Data.Diff {
+		quotes = append(quotes, &model.Quote{
+			Code:      d.Code,
+			Name:      d.Name,
+			Market:    model.MarketIndex,
+			Price:     d.Price,
+			PrevClose: d.PrevClose,
+			High:      d.High,
+			Low:       d.Low,
+			Change:    d.Change,
+			ChangePct: d.ChangePct,
+		})
+	}
+	return quotes, nil
 }
 
 func currencyForMarket(m model.Market) string {

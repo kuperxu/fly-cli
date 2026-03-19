@@ -26,4 +26,5 @@ func init() {
 	rootCmd.AddCommand(portfolioCmd)
 	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(removeCmd)
+	rootCmd.AddCommand(marketCmd)
 }

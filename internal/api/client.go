@@ -1,6 +1,8 @@
 package api
 
 import (
+	"fmt"
+
 	"fly/internal/model"
 )
 
@@ -38,4 +40,13 @@ func (c *Client) GetQuote(symbol string) (*model.Quote, error) {
 		return nil, nil
 	}
 	return quotes[0], nil
+}
+
+// GetIndexQuotes fetches quotes for a list of market indices/bonds using raw secids
+func (c *Client) GetIndexQuotes(secids []string) ([]*model.Quote, error) {
+	em, ok := c.primary.(*eastmoneyProvider)
+	if !ok {
+		return nil, fmt.Errorf("primary provider is not eastmoney")
+	}
+	return em.fetchIndices(secids)
 }

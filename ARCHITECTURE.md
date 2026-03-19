@@ -5,8 +5,8 @@ on layers below it.
 
 ```
 ┌─────────────────────────────────────────────┐
-│  cmd/          CLI layer (Cobra commands)    │
-│  quote.go  portfolio.go  add.go  remove.go  │
+│  cmd/          CLI layer (Cobra commands)             │
+│  quote.go  portfolio.go  add.go  remove.go  market.go│
 └───────────────┬─────────────────────────────┘
                 │ uses
     ┌───────────┴────────────────────────────┐
@@ -64,6 +64,17 @@ user input
     → api.Client.GetQuotes(): fetch from Eastmoney, fallback Tencent
     → []model.Quote
     → []model.PositionView (wraps Quote + optional Holding)
+    → display.PrintQuotes()
+    → terminal output
+```
+
+## Data Flow: `fly market`
+
+```
+cmd/market.go: hardcoded index definitions (secid + display code)
+    → api.Client.GetIndexQuotes(): fetch via eastmoney raw secid
+    → []model.Quote (Market = MarketIndex)
+    → []model.PositionView (no Holding)
     → display.PrintQuotes()
     → terminal output
 ```

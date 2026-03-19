@@ -4,10 +4,11 @@ package model
 type Market string
 
 const (
-	MarketSH Market = "SH" // Shanghai A-share
-	MarketSZ Market = "SZ" // Shenzhen A-share
-	MarketHK Market = "HK" // Hong Kong
-	MarketUS Market = "US" // US stocks
+	MarketSH    Market = "SH"  // Shanghai A-share
+	MarketSZ    Market = "SZ"  // Shenzhen A-share
+	MarketHK    Market = "HK"  // Hong Kong
+	MarketUS    Market = "US"  // US stocks
+	MarketIndex Market = "IDX" // Global index (no exchange suffix)
 )
 
 // Quote holds real-time stock quote data

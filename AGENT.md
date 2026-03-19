@@ -31,6 +31,7 @@ This file is a table of contents — follow the links for deeper context.
 | `fly portfolio` | `fly pf`, `fly ls` | `cmd/portfolio.go` |
 | `fly add <symbol>` | — | `cmd/add.go` |
 | `fly remove <symbol>` | `fly rm`, `fly del` | `cmd/remove.go` |
+| `fly market` | `fly mk` | `cmd/market.go` |
 
 ## Critical constraints (read before changing anything)
 

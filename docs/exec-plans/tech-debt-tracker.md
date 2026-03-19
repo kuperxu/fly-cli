@@ -10,6 +10,7 @@ Known issues, shortcuts, and deferred improvements.
 | TD-002 | deps | `tablewriter` remains in `go.mod` as unused indirect dep | Low |
 | TD-003 | api | Eastmoney NYSE auto-retry (`105.` → `106.`) is a heuristic; some US ETFs may fail silently | Medium |
 | TD-004 | display | No pagination for large portfolios — all rows printed at once | Low |
+| TD-005 | api | `emData.Volume`/`Amount` use `interface{}` to handle eastmoney returning `"-"` for some indices — fragile JSON parsing | Low |
 
 ## Resolved Items
 
