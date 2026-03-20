@@ -42,7 +42,7 @@ var marketCmd = &cobra.Command{
 			views = append(views, &model.PositionView{Quote: q})
 		}
 
-		display.PrintQuotes(views)
+		display.PrintMarketQuotes(views)
 		return nil
 	},
 }

@@ -87,7 +87,45 @@ func PrintQuotes(views []*model.PositionView) {
 	for i, v := range views {
 		rows[i] = buildQuoteRow(v)
 	}
-	printTable(rows)
+	printTable(columns, rows)
+}
+
+// marketColumns defines columns for market index display (no holding-related columns).
+var marketColumns = []column{
+	{"代码", false},
+	{"名称", false},
+	{"当前价", true},
+	{"涨跌额", true},
+	{"涨跌%", true},
+	{"最高", true},
+	{"最低", true},
+}
+
+// PrintMarketQuotes prints a table of market index quotes without holding columns.
+func PrintMarketQuotes(views []*model.PositionView) {
+	rows := make([][]string, len(views))
+	for i, v := range views {
+		rows[i] = buildMarketRow(v)
+	}
+	printTable(marketColumns, rows)
+}
+
+func buildMarketRow(v *model.PositionView) []string {
+	q := v.Quote
+	symbol := q.Code + "." + string(q.Market)
+	if q.Market == model.MarketUS || q.Market == model.MarketIndex {
+		symbol = q.Code
+	}
+
+	return []string{
+		colorCyan.Sprint(symbol),
+		q.Name,
+		colorizeChange(fmt.Sprintf("%.2f", q.Price), q.Change),
+		colorizeChange(fmt.Sprintf("%+.2f", q.Change), q.Change),
+		colorizeChange(fmt.Sprintf("%+.2f%%", q.ChangePct), q.ChangePct),
+		fmt.Sprintf("%.2f", q.High),
+		fmt.Sprintf("%.2f", q.Low),
+	}
 }
 
 // PrintPortfolio prints portfolio with a summary line.
@@ -135,12 +173,12 @@ func PrintSuccess(msg string) {
 }
 
 // printTable renders a table with auto-sized columns using runewidth for correct CJK alignment.
-func printTable(rows [][]string) {
-	n := len(columns)
+func printTable(cols []column, rows [][]string) {
+	n := len(cols)
 
 	// Compute column widths: max of header width and each row's cell width
 	widths := make([]int, n)
-	for i, col := range columns {
+	for i, col := range cols {
 		widths[i] = visibleWidth(col.header)
 	}
 	for _, row := range rows {
@@ -161,7 +199,7 @@ func printTable(rows [][]string) {
 
 	// Header row
 	fmt.Print(sep)
-	for i, col := range columns {
+	for i, col := range cols {
 		cell := padCenter(col.header, widths[i])
 		fmt.Printf(" %s ", colorBold.Sprint(cell))
 		fmt.Print(sep)
