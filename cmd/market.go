@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
 	"fly/internal/api"
 	"fly/internal/display"
@@ -16,6 +17,28 @@ var defaultIndices = []string{
 	"100.HSI",   // 恒生指数
 	"100.NDX",   // 纳斯达克
 	"171.CN10Y", // 中国10年期国债
+}
+
+// printMarketClosedNotice prints a notice when today is a weekend (A-share market closed).
+// It calculates the last weekday as the most recent trading day reference.
+func printMarketClosedNotice(_ []*model.Quote) {
+	cst := time.FixedZone("CST", 8*3600)
+	now := time.Now().In(cst)
+
+	wd := now.Weekday()
+	if wd != time.Saturday && wd != time.Sunday {
+		return
+	}
+
+	// Walk back to the most recent weekday (Friday for Sat/Sun)
+	lastTrading := now
+	for {
+		lastTrading = lastTrading.AddDate(0, 0, -1)
+		if wd := lastTrading.Weekday(); wd != time.Saturday && wd != time.Sunday {
+			break
+		}
+	}
+	fmt.Printf("休盘提示：今天休盘，以下为 %s 的大盘数据\n\n", lastTrading.Format("01月02日"))
 }
 
 var marketCmd = &cobra.Command{
@@ -42,6 +65,7 @@ var marketCmd = &cobra.Command{
 			views = append(views, &model.PositionView{Quote: q})
 		}
 
+		printMarketClosedNotice(quotes)
 		display.PrintMarketQuotes(views)
 		return nil
 	},
