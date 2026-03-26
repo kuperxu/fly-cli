@@ -26,11 +26,11 @@ var addCmd = &cobra.Command{
   fly add AAPL --cost 150 --shares 50`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if addCost <= 0 {
-			return fmt.Errorf("--cost 必须大于 0")
+		if addCost < 0 {
+			return fmt.Errorf("--cost 不能为负数")
 		}
-		if addShares <= 0 {
-			return fmt.Errorf("--shares 必须大于 0")
+		if addShares < 0 {
+			return fmt.Errorf("--shares 不能为负数")
 		}
 
 		norm, err := model.NormalizeCode(args[0])
@@ -52,7 +52,11 @@ var addCmd = &cobra.Command{
 			return err
 		}
 
-		display.PrintSuccess(fmt.Sprintf("已保存持仓: %s  成本 %.2f  数量 %.0f", norm, addCost, addShares))
+		if addShares == 0 {
+			display.PrintSuccess(fmt.Sprintf("已添加观察仓位: %s  关注价 %.2f", norm, addCost))
+		} else {
+			display.PrintSuccess(fmt.Sprintf("已保存持仓: %s  成本 %.2f  数量 %.0f", norm, addCost, addShares))
+		}
 		return nil
 	},
 }

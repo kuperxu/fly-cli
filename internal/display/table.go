@@ -138,7 +138,7 @@ func PrintPortfolio(views []*model.PositionView) {
 
 	var totalCost, totalValue, totalPnL, totalDayPnL float64
 	for _, v := range views {
-		if v.Holding != nil {
+		if v.Holding != nil && v.Holding.Shares > 0 {
 			totalCost += v.CostValue()
 			totalValue += v.MarketValue()
 			pnl, _ := v.PnL()
@@ -268,13 +268,23 @@ func buildQuoteRow(v *model.PositionView) []string {
 
 	if v.Holding != nil {
 		pnl, pnlPct := v.PnL()
-		row = append(row,
-			fmt.Sprintf("%.2f", v.Holding.Cost),
-			fmt.Sprintf("%.0f", v.Holding.Shares),
-			fmt.Sprintf("%.2f", v.MarketValue()),
-			colorizeChange(fmt.Sprintf("%+.2f", pnl), pnl),
-			colorizeChange(fmt.Sprintf("%+.2f%%", pnlPct), pnl),
-		)
+		if v.Holding.Shares == 0 {
+			row = append(row,
+				fmt.Sprintf("%.2f", v.Holding.Cost),
+				"-",
+				"-",
+				"-",
+				"-",
+			)
+		} else {
+			row = append(row,
+				fmt.Sprintf("%.2f", v.Holding.Cost),
+				fmt.Sprintf("%.0f", v.Holding.Shares),
+				fmt.Sprintf("%.2f", v.MarketValue()),
+				colorizeChange(fmt.Sprintf("%+.2f", pnl), pnl),
+				colorizeChange(fmt.Sprintf("%+.2f%%", pnlPct), pnl),
+			)
+		}
 	} else {
 		row = append(row, "-", "-", "-", "-", "-")
 	}
